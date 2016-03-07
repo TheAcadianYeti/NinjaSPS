@@ -3,25 +3,28 @@ using System.Collections;
 
 public class Ninja : MonoBehaviour {
 
-	private const float circleRadius = 1.5f;
+	private const float circleRadius = 1.7f;
 
 	public LayerMask whatIsGround,whatIsWall;
 	public Transform groundCheck;
-	public float max_speed = 5.0f, jump_speed = 10.0f, attackDuration = 10.0f;
 
+	public float max_speed = 5.0f, jump_speed = 10.0f, attackDuration = 10.0f;
+	public bool attacking = false;
 	private Animator anim;
+	private Rigidbody2D rigid;
 	private float attackCount = 0.0f;
-	private bool attacking = false, onGround = true, onWall = false, facingRight = true;//Used to determine if we are on the ground, or if we are attached to a wall
+	private bool onGround = true, onWall = false, facingRight = true, unityIsStupid = false;//Used to determine if we are on the ground, or if we are attached to a wall
 	// Use this for initialization
 	void Start () 
 	{
 		anim = GetComponent<Animator>();
+		rigid = GetComponent<Rigidbody2D>();
 		AnimatorStateInfo info = anim.GetCurrentAnimatorStateInfo(0);
 		Debug.Log(info.IsName ("Idle"));
 	}
 	
 	// Update is called once per frame
-	void FixedUpdate () 
+	void Update () 
 	{
 		onGround = Physics2D.OverlapCircle(groundCheck.position, circleRadius, whatIsGround);
 		if(!onGround)
@@ -33,42 +36,34 @@ public class Ninja : MonoBehaviour {
 			onWall = false;
 		}
 
-		if(attacking)
+		if(Input.GetButtonDown("Attack"))
 		{
-
-			attackCount++;
-			if(attackCount > attackDuration)
-			{
-				attackCount = 0;
-				anim.SetBool("Attacking", false);
-				attacking = false;
-			}
-			else
-			{
-				if(onGround)
-				{
-					GetComponent<Rigidbody2D>().velocity = new Vector2(0, 0);
-				}
-			}
+			Attack();
 		}
-		else
+		else if(onGround && Input.GetButtonDown("Jump"))
 		{
-			//Perform transforms
-			float xMovement = Input.GetAxis("Horizontal");
-			GetComponent<Rigidbody2D>().velocity = new Vector2(xMovement * max_speed, GetComponent<Rigidbody2D>().velocity.y);
+			Jump();
+		}
+		else if(!attacking)
+		{
+            //Perform transforms
+            float xMovement = Input.GetAxis("Horizontal");
+			float xVel = (xMovement * max_speed);
+			rigid.velocity = new Vector2(xVel, rigid.velocity.y);
 			//Check to see if we're on ground, if so animate
-			if(onGround && xMovement != 0.0f)
-			{
-				anim.SetBool("Running", true);
-			}
+			if(onGround && xVel != 0.0f)
+			{   
+                anim.SetBool("Running", true);
+		   }
 			else
 			{
+			
 				anim.SetBool("Running", false);
-			}
+				
+            }
 
 			if(xMovement < 0.0f && facingRight)
 			{
-
 				Flip();
 			}
 			else if(xMovement > 0.0f && !facingRight)
@@ -77,14 +72,8 @@ public class Ninja : MonoBehaviour {
 			}
 	
 
-			if(Input.GetButtonDown("Jump") && onGround)
-			{
-				Jump();
-			}
-			else if(Input.GetButtonDown("Attack"))
-			{
-				Attack();
-			}
+
+
 				
 		}
 	}
@@ -92,16 +81,25 @@ public class Ninja : MonoBehaviour {
 	//Jump method
 	void Jump()
 	{
-		GetComponent<Rigidbody2D>().velocity = new Vector2(0, jump_speed);
+		rigid.velocity = new Vector2(rigid.velocity.x, jump_speed);
 		anim.SetBool("Running", false);
 	}
 	//Attack method
 	void Attack()
 	{
-		anim.SetBool("Attacking", true);
-		anim.SetBool("Running", false);
+		rigid.velocity = new Vector2(0, rigid.velocity.y);
 		attacking = true;
+		anim.SetBool("Running", false);
+		anim.SetBool("Attacking", true);
+	}
 
+	/**
+	Method called by behaviour to stop attacking
+	*/
+	public void doneAttacking()
+	{
+		anim.SetBool("Attacking", false);
+		attacking = false;
 	}
 
 	void Flip()
