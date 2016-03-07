@@ -8,26 +8,30 @@ public class Ninja : MonoBehaviour {
 	public LayerMask whatIsGround,whatIsWall;
 	public Transform groundCheck;
 
-	public float max_speed = 5.0f, jump_speed = 10.0f, attackDuration = 10.0f;
-	public bool attacking = false;
+	public BoxCollider2D swordHitBox;
+	public float max_speed = 5.0f, jump_speed = 10.0f, air_speed = 10.0f;
+
 	private Animator anim;
 	private Rigidbody2D rigid;
+	
 	private float attackCount = 0.0f;
-	private bool onGround = true, onWall = false, facingRight = true, unityIsStupid = false;//Used to determine if we are on the ground, or if we are attached to a wall
+	public bool onGround = true, onWall = false, facingRight = true, attacking = false;//Used to determine if we are on the ground, or if we are attached to a wall
 	// Use this for initialization
 	void Start () 
 	{
+		swordHitBox = GetComponentInChildren<BoxCollider2D>();
+		swordHitBox.enabled = false;
 		anim = GetComponent<Animator>();
 		rigid = GetComponent<Rigidbody2D>();
 		AnimatorStateInfo info = anim.GetCurrentAnimatorStateInfo(0);
-		Debug.Log(info.IsName ("Idle"));
 	}
 	
 	// Update is called once per frame
-	void Update () 
+	void FixedUpdate () 
 	{
 		onGround = Physics2D.OverlapCircle(groundCheck.position, circleRadius, whatIsGround);
-		if(!onGround)
+
+		if (!onGround)
 		{
 			onWall = Physics2D.OverlapCircle(groundCheck.position, circleRadius, whatIsWall);
 		}
@@ -36,11 +40,7 @@ public class Ninja : MonoBehaviour {
 			onWall = false;
 		}
 
-		if(Input.GetButtonDown("Attack"))
-		{
-			Attack();
-		}
-		else if(onGround && Input.GetButtonDown("Jump"))
+		if( onGround && Input.GetButtonDown("Jump"))
 		{
 			Jump();
 		}
@@ -48,7 +48,15 @@ public class Ninja : MonoBehaviour {
 		{
             //Perform transforms
             float xMovement = Input.GetAxis("Horizontal");
-			float xVel = (xMovement * max_speed);
+			float xVel;
+			if (!onGround)
+			{
+				xVel = (xMovement * air_speed);
+			}
+			else
+			{
+				xVel = (xMovement * max_speed);
+			}
 			rigid.velocity = new Vector2(xVel, rigid.velocity.y);
 			//Check to see if we're on ground, if so animate
 			if(onGround && xVel != 0.0f)
@@ -69,14 +77,33 @@ public class Ninja : MonoBehaviour {
 			else if(xMovement > 0.0f && !facingRight)
 			{
 				Flip();
-			}
-	
-
-
-
-				
+			}	
 		}
 	}
+
+	//Overriting on trigger enter 2d method
+	public void OnTriggerEnter2D(Collider2D collider)
+	{
+		Debug.Log(collider.enabled);
+		bool whoHit = collider.enabled;
+		//We would play the death animation here. which will kill the unit
+		if (collider.gameObject.tag == "Ninja" && !whoHit)
+		{
+			die();
+		}
+
+	}
+
+	/**
+	*Kill method
+	*/
+	public void die()
+	{
+		//Kills this object and removes it from the scene
+		Destroy(this.gameObject, 0.0f);
+	}
+
+
 
 	//Jump method
 	void Jump()
@@ -85,12 +112,22 @@ public class Ninja : MonoBehaviour {
 		anim.SetBool("Running", false);
 	}
 	//Attack method
-	void Attack()
+	public void Attack()
 	{
-		rigid.velocity = new Vector2(0, rigid.velocity.y);
 		attacking = true;
 		anim.SetBool("Running", false);
 		anim.SetBool("Attacking", true);
+		//swordHitBox.toggle();
+		swordHitBox.enabled = true;
+		if (onGround)
+		{
+			rigid.velocity = new Vector2(0, rigid.velocity.y);
+		}
+		else
+		{
+			rigid.velocity = new Vector2(rigid.velocity.x, rigid.velocity.y);
+		}
+
 	}
 
 	/**
@@ -99,6 +136,7 @@ public class Ninja : MonoBehaviour {
 	public void doneAttacking()
 	{
 		anim.SetBool("Attacking", false);
+		swordHitBox.enabled = false; 
 		attacking = false;
 	}
 

@@ -9,11 +9,10 @@ public class AttackBehaviour : StateMachineBehaviour {
 	override public void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
 	{
 		if (uh == null)
-		{
-			Debug.Log("Yo");
+		{	
 			//Just go ahead and get the damned game object....grr
-			Debug.Log(GameObject.FindGameObjectsWithTag("Ninja").Length);
-			uh = GameObject.FindGameObjectWithTag("Ninja");
+			//This is awful,let's do it
+			uh = animator.gameObject;
 			//uh = GameObject.Find("Ninja");
 			mainChar = uh.GetComponent<Ninja>();
 		}
@@ -27,8 +26,6 @@ public class AttackBehaviour : StateMachineBehaviour {
 	// OnStateExit is called when a transition ends and the state machine finishes evaluating this state
 	override public void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
 	{
-
-
 		mainChar.doneAttacking();
 	}
 
